@@ -397,26 +397,22 @@ pub(super) fn preload_world_data(
     }
 }
 
-/// A launch that names a world (`--world`, `--quickPlaySingleplayer`): the
-/// same preload, started as soon as the block registry and the biomes are
-/// loaded, so it overlaps the rest of the startup instead of the world's
-/// opening. Read for the world's own data packs and preset, the bundle and
-/// decoration `make_streaming` asks for; a world they don't fit (one its
-/// upgrade rewrites) reads its own when it opens.
-pub(super) fn preload_launch_world(
-    folder: &str,
+/// Preload a named world's server tables while the remaining resources load.
+/// Clients also prepare their generator from the world's packs and preset as
+/// soon as the block registry and biomes are ready. Dedicated starts keep
+/// generator parsing on the opening thread and overlap only registry and loot
+/// loading after the core bundle is ready.
+pub(super) fn preload_world_root(
+    world_root: PathBuf,
     resources: &std::path::Path,
     registry: &'static horizon_world::registry::BlockRegistry,
     biomes: Arc<horizon_client::biome::Biomes>,
+    prepare_generator: bool,
 ) {
     let mut preload = PRELOAD.lock().unwrap_or_else(|e| e.into_inner());
     if !matches!(*preload, Preload::Idle) {
         return;
     }
-    let Ok(dir) = std::env::current_dir() else {
-        return;
-    };
-    let world_root = dir.join("saves").join(folder);
     let resources = resources.to_owned();
     let spawned = std::thread::Builder::new()
         .name("World data preload".into())
@@ -424,20 +420,24 @@ pub(super) fn preload_launch_world(
             // Not behind the server: the world's opening waits for it.
             let started = std::time::Instant::now();
             let sync = spawn_sync_preload(&resources, false);
-            // Errors are left for the world opening to report. The world's
-            // flags from its level.dat: the feature packs a flag forces on.
-            let enabled_features = horizon_client::save::Level::read(&world_root)
-                .map(|l| l.enabled_features)
-                .unwrap_or_default();
-            let (overrides, _) =
-                worldgen_overrides_of(&world_root, &resources, &biomes, &enabled_features);
-            if let Ok(data) = horizon_client::vanillagen::shared_data_with(
-                &resources.join("worldgen"),
-                &overrides,
-                registry,
-            ) {
-                let preset = horizon_client::save::WorldGen::preset(&world_root);
-                let _ = data.prepare_decoration(preset, "minecraft:overworld");
+            // A client can warm its generator as before. Dedicated startup
+            // only overlaps the lighter registry and loot loads: moving the
+            // generator's large parse onto another heap raised peak RSS.
+            if prepare_generator {
+                // Errors are left for the world opening to report.
+                let enabled_features = horizon_client::save::Level::read(&world_root)
+                    .map(|l| l.enabled_features)
+                    .unwrap_or_default();
+                let (overrides, _) =
+                    worldgen_overrides_of(&world_root, &resources, &biomes, &enabled_features);
+                if let Ok(data) = horizon_client::vanillagen::shared_data_with(
+                    &resources.join("worldgen"),
+                    &overrides,
+                    registry,
+                ) {
+                    let preset = horizon_client::save::WorldGen::preset(&world_root);
+                    let _ = data.prepare_decoration(preset, "minecraft:overworld");
+                }
             }
             // As in `preload_world_data`: the loot data and the server's
             // data share one read of the recipe folder.

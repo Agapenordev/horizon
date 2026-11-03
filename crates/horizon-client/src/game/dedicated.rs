@@ -408,6 +408,24 @@ pub(super) fn preflight(options: &mut Options) -> Result<bool> {
     Ok(true)
 }
 
+/// The existing level a dedicated launch will open. A missing level.dat is
+/// deliberately left to initServer: a new world's preset is not known until
+/// its server.properties generator settings have been written.
+pub(super) fn existing_world_root() -> Option<PathBuf> {
+    // Native data-load hooks may depend on per-world server configs, which
+    // initServer opens later. Keep their established lifecycle ordering.
+    if !crate::mod_api::mods().is_empty() {
+        return None;
+    }
+    let setup = SETUP.get()?.lock().ok()?;
+    let setup = setup.as_ref()?;
+    let root = std::env::current_dir()
+        .ok()?
+        .join(&setup.universe)
+        .join(&setup.level_name);
+    root.join("level.dat").is_file().then_some(root)
+}
+
 /// The event a change of a list is (`operators_added`, `bans_removed`...), and the entry it is about.
 fn listed<E>(list: &str, change: Change<E>) -> (String, E) {
     match change {

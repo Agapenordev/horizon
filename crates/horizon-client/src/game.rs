@@ -19825,7 +19825,7 @@ fn load_core(
     headless: bool,
     parallel: bool,
     progress: &Progress,
-    launch_world: Option<&str>,
+    launch_world: Option<&std::path::Path>,
 ) -> std::result::Result<std::result::Result<CoreTables, String>, String> {
     // The model library reads every file under `assets/` and needs no
     // block registry, so it is parsed beside `Assets::load` rather than
@@ -19898,7 +19898,13 @@ fn load_core(
                 // block registry and the biomes, so it starts here rather than
                 // after the block models and facts (~250 ms later).
                 if let Some(folder) = launch_world {
-                    world_loading::preload_launch_world(folder, root, registry, biomes.clone());
+                    world_loading::preload_world_root(
+                        folder.to_owned(),
+                        root,
+                        registry,
+                        biomes.clone(),
+                        !headless,
+                    );
                 }
                 Ok::<_, String>(biomes)
             });
@@ -20005,6 +20011,18 @@ fn load_resources(
     publish: &mut dyn FnMut(UiResources, &std::path::Path),
 ) -> Result<Loaded> {
     let threads = settings.horizon.worker_threads();
+    // A dedicated server's universe and level name come from its preflight,
+    // not the client's saves folder. New worlds wait for server.properties to
+    // write their generator settings before preparing world data as before.
+    let launch_world = if headless {
+        dedicated::existing_world_root()
+    } else {
+        launch_world.and_then(|folder| {
+            std::env::current_dir()
+                .ok()
+                .map(|cwd| cwd.join("saves").join(folder))
+        })
+    };
     // One pool of workers for every level's streaming, the client's and the
     // server thread's (horizon_threads::jobs), sized before any world opens.
     horizon_threads::jobs::configure(threads);
@@ -20047,7 +20065,9 @@ fn load_resources(
                 // A failed pack starts core again from the game's own
                 // resources, which the world's preload must read: with packs
                 // it waits for the core that loaded.
-                let early = launch_world.filter(|_| root == vanilla_root);
+                let early = launch_world
+                    .as_deref()
+                    .filter(|_| !headless && root == vanilla_root);
                 startup::time("core", || {
                     load_core(&root, headless, parallel, progress, early)
                 })
@@ -20096,7 +20116,13 @@ fn load_resources(
     let assets = Arc::new(assets);
     let render = Arc::new(render);
     if let Some(folder) = launch_world {
-        world_loading::preload_launch_world(folder, &root, assets.registry, biomes.clone());
+        world_loading::preload_world_root(
+            folder,
+            &root,
+            assets.registry,
+            biomes.clone(),
+            !headless,
+        );
     }
     let tables = Arc::new(startup::time("pack.mesh_tables", || {
         MeshTables::new(&assets, &render, &facts, visibility)
