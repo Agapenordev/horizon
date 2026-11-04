@@ -1701,6 +1701,28 @@ API 408 adds reading the server's play packets on the client (`native_client_pac
 
 API 409 adds `native_send_packet(packet)` sends any serverbound play packet (`ServerboundPlayPacket`), a plugin channel's custom payload included, to any server, unchecked; an error when not in a server's play state. Bundles need "hooks": 409.
 
+API 410 adds `Host` gains `draw_model` (standalone models in `block_entity_submit`), `mod_block_entity(pos)` (a copy; on a client what the server sent) and `change_mod_block_entity(pos, change)`, `item_entities`, `level_random(dimension)`, `play_sound` and `send_particles` for the level in place, `block_name_in_tag` and `server_item_in_tag`, `component`, `set_component` and `remove_component`, `trigger_criterion` with a `&dyn Fn` test, `equipment(slot)` (on a client the player's own) and `sneaking()` (`isSecondaryUseActive` in a use hook). Bundles need "hooks": 410.
+
+API 411 adds `native_use_as_player(stack, eye, yaw, pitch, target, sneaking)` uses `stack` as NeoForge's `FakePlayer` would: `useItemOn` on a block, `useItem` in the air, or `interactOn` with an entity, in survival with nothing else in hand; it returns whether the use did something and what the fake player holds and carries afterwards. Bundles need "hooks": 411.
+
+API 412 adds `native_machine_destroy_block(pos, tool, collect)` is `Level.destroyBlock` with the loot rolled for `tool` and no player, the drops popped or, with `collect`, returned; `native_set_break_progress(breaker, pos, progress)` is `ServerLevel.destroyBlockProgress`. Bundles need "hooks": 412.
+
+API 413 adds `native_container_accepts(pos, entity, slot, stack, face, cancel)` is asked before a hopper, a dropper or `native_insert_item` puts an item into a slot of a mod's container that its `ModContainer` lets be filled; set `cancel` to refuse it, as `IItemHandler.isItemValid` returning false. Bundles need "hooks": 413.
+
+API 414 adds `native_force_chunk(owner, chunk, hold)` holds a chunk of the level in place loaded and ticking for `owner`, as NeoForge's `TicketController.forceChunk`; `native_forced_chunks(owner)` lists what it holds. Tickets aren't saved. Bundles need "hooks": 414.
+
+API 415 adds `native_block_face_sprite(state, side)` names the texture a block state's model shows on a side and its tint index, as `native_draw_cube` takes it: a copycat block draws its material's textures on its own shape. Bundles need "hooks": 415.
+
+API 416 adds `native_draw_text(draw, text, at, color, glowing, outline)` draws a `Text` under a block entity's pose as a sign draws its lines (`Font.drawInBatch`): one unit a font pixel, each span in its colour, glowing text full bright, an optional outline; it returns the width. Bundles need "hooks": 416.
+
+API 417 adds `native_draw_scene(batch, rect, blocks, view)` draws a few block states, at positions of their own, into a box of a screen, seen as `NativeSceneView` says (centre, yaw, pitch, scale), with a depth of their own: each block's model, and a mod block entity's drawing through `native_block_entity_submit` with its turning parts. Bundles need "hooks": 417.
+
+API 418 adds `BlockEntityDraw::spin(axis, pivot, degrees_per_tick, phase)` makes what is drawn next turn by itself and `still` ends it; kept with `keep`, a turning shaft is drawn every frame with no call of `native_block_entity_submit` until its block entity changes. Bundles need "hooks": 418.
+
+API 419 adds `native_fluid_flow(dimension, pos)` is `FluidState.getFlow(level, pos)`: the normalised current an item in the fluid is pushed by, zero for still or no fluid, none where the chunk isn't loaded or the dimension isn't available. Bundles need "hooks": 419.
+
+API 420 adds Tanks take a mod's own fluids (`create:chocolate`, `create:potion/healing`) as they take water and lava: `native_fluid_insert`, `native_fluid_extract` and `native_move_fluids` move them, `native_fluid_tanks` reads them, and its mod draws them. A cauldron takes only water and lava, and the world has only vanilla's fluids. Bundles need "hooks": 420.
+
 ## What the launcher does
 
 **Developing a mod?** Run `horizon-launcher settings native-profile dev` once, or pick "Dev build" in the Mods page's

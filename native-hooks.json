@@ -673,6 +673,106 @@
     {
       "name": "send_packet",
       "target": "horizon_client::game::native_net::Game<'_>::native_send_packet"
+    },
+    {
+      "name": "block_face_sprite",
+      "target": "horizon_client::game::native_block_sprites::Game<'_>::native_block_face_sprite"
+    },
+    {
+      "name": "force_chunk",
+      "target": "horizon_client::game::native_chunk_tickets::Game<'_>::native_force_chunk"
+    },
+    {
+      "name": "forced_chunks",
+      "target": "horizon_client::game::native_chunk_tickets::Game<'_>::native_forced_chunks"
+    },
+    {
+      "name": "draw_text",
+      "target": "horizon_client::game::native_block_entity_draw::Game<'_>::native_draw_text"
+    },
+    {
+      "name": "use_as_player",
+      "target": "horizon_client::game::native_machines::Game<'_>::native_use_as_player"
+    },
+    {
+      "name": "fluid_flow",
+      "target": "horizon_client::game::native_world_read::Game<'_>::native_fluid_flow"
+    },
+    {
+      "name": "draw_model",
+      "target": "horizon_client::game::native_block_entity_draw::Game<'_>::native_draw_model"
+    },
+    {
+      "name": "mod_block_entity",
+      "target": "horizon_client::game::native_host_bridge::Game<'_>::native_mod_block_entity"
+    },
+    {
+      "name": "change_mod_block_entity",
+      "target": "horizon_client::game::native_host_bridge::Game<'_>::native_change_mod_block_entity"
+    },
+    {
+      "name": "item_entities",
+      "target": "horizon_client::game::native_hooks::Game<'_>::native_item_entities"
+    },
+    {
+      "name": "level_random",
+      "target": "horizon_client::game::native_hooks::Game<'_>::native_level_random"
+    },
+    {
+      "name": "play_sound",
+      "target": "horizon_client::game::native_host_bridge::Game<'_>::native_level_play_sound"
+    },
+    {
+      "name": "send_particles",
+      "target": "horizon_client::game::native_host_bridge::Game<'_>::native_level_send_particles"
+    },
+    {
+      "name": "block_name_in_tag",
+      "target": "horizon_client::game::native_world_read::Game<'_>::native_block_name_in_tag"
+    },
+    {
+      "name": "server_item_in_tag",
+      "target": "horizon_client::game::native_world_read::Game<'_>::native_server_item_in_tag"
+    },
+    {
+      "name": "component",
+      "target": "horizon_client::game::native_components::Game<'_>::native_component"
+    },
+    {
+      "name": "set_component",
+      "target": "horizon_client::game::native_components::Game<'_>::native_set_component"
+    },
+    {
+      "name": "remove_component",
+      "target": "horizon_client::game::native_components::Game<'_>::native_remove_component"
+    },
+    {
+      "name": "trigger_criterion",
+      "target": "horizon_client::game::native_criteria::Game<'_>::native_trigger_mod_criterion"
+    },
+    {
+      "name": "equipment",
+      "target": "horizon_client::game::native_host_bridge::Game<'_>::native_equipment"
+    },
+    {
+      "name": "sneaking",
+      "target": "horizon_client::game::native_host_bridge::Game<'_>::native_sneaking"
+    },
+    {
+      "name": "destroy_block",
+      "target": "horizon_client::game::native_machines::Game<'_>::native_machine_destroy_block"
+    },
+    {
+      "name": "set_break_progress",
+      "target": "horizon_client::game::native_machines::Game<'_>::native_set_break_progress"
+    },
+    {
+      "name": "fluid_tanks",
+      "target": "horizon_client::game::machines::native_fluids::Game<'_>::native_fluid_tanks"
+    },
+    {
+      "name": "draw_scene",
+      "target": "horizon_client::game::native_scene::Game<'_>::native_draw_scene"
     }
   ],
   "hooks": [
@@ -4973,6 +5073,18 @@
       "cancellable": false,
       "mod_api": {
         "contract": "listen"
+      }
+    },
+    {
+      "name": "container_accepts",
+      "version": 1,
+      "target": "horizon_client::game::native_hooks::Game<'_>::native_container_accepts",
+      "neoforge": "IItemHandler.isItemValid (Capabilities.Item.BLOCK)",
+      "side": "server",
+      "cancellable": true,
+      "mod_api": {
+        "contract": "cancel",
+        "out": "cancel"
       }
     }
   ]
