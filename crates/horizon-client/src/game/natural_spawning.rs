@@ -447,6 +447,19 @@ impl SpawnLevel for GameLevel<'_, '_> {
     }
 }
 impl NaturalLevel for GameLevel<'_, '_> {
+    /// From the section's palette when it answers for every block (a section
+    /// of stone and ores, or of air): reading the cell itself is a cache miss
+    /// in a random section of every chunk, each tick.
+    fn redstone_conductor(&self, x: i32, y: i32, z: i32) -> bool {
+        let data = self.w.data;
+        let conducts = |s: BlockStateId| {
+            data.state(s).flags & horizon_client::mobs::data::REDSTONE_CONDUCTOR != 0
+        };
+        self.w
+            .world
+            .palette_answer(x, y, z, conducts)
+            .unwrap_or_else(|| conducts(self.state(x, y, z)))
+    }
     fn spawn_hooks(&self) -> bool {
         !horizon_client::mod_api::mods().is_empty()
     }

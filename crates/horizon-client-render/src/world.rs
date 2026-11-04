@@ -426,6 +426,29 @@ impl World {
         }
         false
     }
+    /// What `matches` says of the block at (x, y, z) when its section's
+    /// palette alone tells: every entry matches, or none does. `None` when
+    /// only the cell can tell (a mixed or long palette, or no section there):
+    /// the caller reads [`Self::block`] then, and gets the same answer.
+    pub fn palette_answer(
+        &self,
+        x: i32,
+        y: i32,
+        z: i32,
+        mut matches: impl FnMut(BlockStateId) -> bool,
+    ) -> Option<bool> {
+        let chunk = self.chunks.get(&(x >> 4, z >> 4))?;
+        let blocks = &chunk.sections[chunk.section_index(y)?].blocks;
+        // Each entry is asked twice at most: past 16 of them, reading the
+        // cell costs less.
+        if blocks.is_global() || blocks.palette_len() > 16 {
+            return None;
+        }
+        if !blocks.maybe_has(|v| matches(BlockStateId(v))) {
+            return Some(false);
+        }
+        (!blocks.maybe_has(|v| !matches(BlockStateId(v)))).then_some(true)
+    }
     /// The block entities to tick this tick, in order (`BlockEntities::tickers`).
     pub fn block_entity_tickers(
         &mut self,
@@ -612,6 +635,32 @@ mod tests {
 
     /// A box misses a state only where no section it reaches lists it, and
     /// unloaded columns or heights past the world count as their air.
+    #[test]
+    fn a_palette_answer_is_the_block_s_own() {
+        let mut world = World::new(BlockStateId(0), 0);
+        let mut chunk = Chunk::empty(0, 0);
+        chunk.set(3, 70, 3, 9);
+        world.chunks.insert((0, 0), Arc::new(chunk));
+        let nine = |s: BlockStateId| s.0 == 9;
+        let any = |s: BlockStateId| s.0 == 9 || s.0 == 0;
+        for y in [-100, -1, 0, 50, 64, 70, 79, 80, 400] {
+            for (x, z) in [(3, 3), (0, 0), (15, 15), (20, 3), (-1, -1)] {
+                for matches in [&nine as &dyn Fn(BlockStateId) -> bool, &any] {
+                    if let Some(answer) = world.palette_answer(x, y, z, matches) {
+                        assert_eq!(answer, matches(world.block(x, y, z)), "({x}, {y}, {z})");
+                    }
+                }
+            }
+        }
+        // An air section answers for all its cells; the section holding 9
+        // answers only where every entry agrees.
+        assert_eq!(world.palette_answer(1, 50, 1, nine), Some(false));
+        assert_eq!(world.palette_answer(1, 70, 1, nine), None);
+        assert_eq!(world.palette_answer(1, 70, 1, any), Some(true));
+        // No chunk, or no section: the caller reads the block.
+        assert_eq!(world.palette_answer(20, 70, 3, nine), None);
+        assert_eq!(world.palette_answer(1, 400, 1, nine), None);
+    }
     #[test]
     fn may_hold_reads_the_palettes_of_the_reached_sections() {
         let mut world = World::new(BlockStateId(0), 0);

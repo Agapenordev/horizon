@@ -301,6 +301,11 @@ fn spawns_far_from_player(s: Species, category: Category) -> bool {
 pub type MobType = (Species, f32, f32, Category);
 
 pub trait NaturalLevel: SpawnLevel {
+    /// `BlockState.isRedstoneConductor` of the block at (x, y, z): the start
+    /// of a spawn attempt, read for every chunk and category each tick.
+    fn redstone_conductor(&self, x: i32, y: i32, z: i32) -> bool {
+        self.mob_data().state(self.state(x, y, z)).flags & super::data::REDSTONE_CONDUCTOR != 0
+    }
     /// Whether server mods hear `potential_spawns`.
     fn spawn_hooks(&self) -> bool {
         false
@@ -1092,7 +1097,7 @@ pub fn spawn_category_for_position<L: NaturalLevel, R: RandomSource>(
     trace: &mut dyn FnMut(Event),
 ) {
     let [x0, y, z0] = start;
-    if l.mob_data().state(l.state(x0, y, z0)).flags & super::data::REDSTONE_CONDUCTOR != 0 {
+    if l.redstone_conductor(x0, y, z0) {
         return;
     }
     let mut spawned: Vec<Aabb> = Vec::new();
